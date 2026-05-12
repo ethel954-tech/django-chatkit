@@ -1,0 +1,296 @@
+{% extends "chatkit/app_base.html" %}
+{% block title %}ChatKit · Create Story{% endblock %}
+
+{% block extra_head %}
+<style>
+  .media-preview {
+    margin-top: 12px;
+    border-radius: 12px;
+    overflow: hidden;
+    max-height: 400px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+  }
+
+  .media-preview img,
+  .media-preview video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #374151;
+  }
+
+  .dark .form-label {
+    color: #d1d5db;
+  }
+
+  .form-input,
+  .form-textarea,
+  .form-select {
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .dark .form-input,
+  .dark .form-textarea,
+  .dark .form-select {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #f3f4f6;
+  }
+
+  .form-input:focus,
+  .form-textarea:focus,
+  .form-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 120px;
+    font-family: inherit;
+  }
+
+  .help-text {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .dark .help-text {
+    color: #9ca3af;
+  }
+
+  .error-message {
+    color: #dc2626;
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  .dark .error-message {
+    color: #fca5a5;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  .btn-secondary {
+    background: #f3f4f6;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+  }
+
+  .dark .btn-secondary {
+    background: #374151;
+    color: #f3f4f6;
+    border-color: #4b5563;
+  }
+
+  .btn-secondary:hover {
+    background: #e5e7eb;
+  }
+
+  .dark .btn-secondary:hover {
+    background: #4b5563;
+  }
+
+  .info-banner {
+    background: #dbeafe;
+    border: 1px solid #93c5fd;
+    color: #1e40af;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .dark .info-banner {
+    background: #1e3a8a;
+    border-color: #1e40af;
+    color: #bfdbfe;
+  }
+
+  .info-banner svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+</style>
+{% endblock %}
+
+{% block sidebar %}
+  <div class="space-y-4">
+    <a href="{% url 'status:status_list' %}" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+      Back to Stories
+    </a>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="w-full h-full overflow-y-auto">
+    <div class="max-w-2xl mx-auto p-6">
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-2">Create a Story</h1>
+        <p class="text-gray-600 dark:text-gray-400">Share something with your friends. It'll disappear after 24 hours.</p>
+      </div>
+
+      <!-- Info Banner -->
+      <div class="info-banner mb-6">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+          <strong>💡 Tip:</strong> Add text or media to create your story. Only your friends can see it, and it will disappear after 24 hours.
+        </div>
+      </div>
+
+      <!-- Messages -->
+      {% if messages %}
+        <div class="space-y-3 mb-6">
+          {% for message in messages %}
+            <div class="px-4 py-3 rounded-lg {% if message.tags == 'error' %}bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-800{% elif message.tags == 'success' %}bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-200 border border-green-200 dark:border-green-800{% else %}bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-800{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Form -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <!-- Text Content -->
+          <div class="form-group">
+            <label class="form-label">What's on your mind?</label>
+            {{ form.content }}
+            <p class="help-text">Optional. Max 500 characters.</p>
+            {% if form.content.errors %}
+              <div class="error-message">{{ form.content.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Media Upload -->
+          <div class="form-group">
+            <label class="form-label">Add a Photo or Video</label>
+            {{ form.media }}
+            <p class="help-text">Optional. Supported: JPEG, PNG, GIF, MP4, WebM</p>
+            {% if form.media.errors %}
+              <div class="error-message">{{ form.media.errors.0 }}</div>
+            {% endif %}
+            
+            <!-- Media Preview -->
+            <div id="mediaPreview"></div>
+          </div>
+
+          <!-- Media Type -->
+          <div class="form-group">
+            <label class="form-label">Media Type</label>
+            {{ form.media_type }}
+            <p class="help-text">Select if you're uploading media</p>
+            {% if form.media_type.errors %}
+              <div class="error-message">{{ form.media_type.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Non-field Errors -->
+          {% if form.non_field_errors %}
+            <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-200 space-y-1">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <!-- Submit -->
+          <div class="button-group">
+            <button type="submit" class="btn btn-primary">
+              <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+              Post Story
+            </button>
+            <a href="{% url 'status:status_list' %}" class="btn btn-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Media preview
+    const mediaInput = document.querySelector('input[type="file"]');
+    const previewContainer = document.getElementById('mediaPreview');
+
+    if (mediaInput) {
+      mediaInput.addEventListener('change', function(e) {
+        previewContainer.innerHTML = '';
+        
+        if (this.files && this.files[0]) {
+          const file = this.files[0];
+          const reader = new FileReader();
+          
+          reader.onload = function(event) {
+            if (file.type.startsWith('image/')) {
+              previewContainer.innerHTML = `<div class="media-preview"><img src="${event.target.result}" alt="Preview"></div>`;
+            } else if (file.type.startsWith('video/')) {
+              previewContainer.innerHTML = `<div class="media-preview"><video controls><source src="${event.target.result}" type="${file.type}"></video></div>`;
+            }
+          };
+          
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+  </script>
+{% endblock %}

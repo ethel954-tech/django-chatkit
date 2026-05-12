@@ -1,0 +1,139 @@
+{% extends "chatkit/app_base.html" %}
+{% load humanize %}
+{% block title %}ChatKit · View Story{% endblock %}
+
+{% block sidebar %}
+  <div class="space-y-4">
+    <a href="{% url 'status:status_list' %}" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+      Back to Stories
+    </a>
+
+    {% if is_owner %}
+    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Views</h3>
+      <div class="text-3xl font-bold text-blue-600 mb-2">{{ viewers|length }}</div>
+      {% if viewers %}
+        <div class="space-y-2">
+          {% for view in viewers|slice:":5" %}
+            <div class="text-xs text-gray-600 dark:text-gray-400 truncate">
+              {{ view.viewer.username }} • {{ view.viewed_at|naturaltime }}
+            </div>
+          {% endfor %}
+          {% if viewers|length > 5 %}
+            <div class="text-xs text-gray-500 pt-2 border-t border-gray-200 dark:border-gray-700">
+              +{{ viewers|length|add:"-5" }} more
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="h-full overflow-y-auto">
+    <div class="max-w-4xl mx-auto p-6">
+      <!-- Story Info -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+              {{ status.user.username|slice:":1"|upper }}
+            </div>
+            <div>
+              <div class="font-semibold">{{ status.user.username }}</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400">{{ status.created_at|naturaltime }}</div>
+            </div>
+          </div>
+
+          <!-- Expires at -->
+          <div class="text-right">
+            <div class="text-xs text-gray-500 dark:text-gray-400">Expires</div>
+            <div class="text-sm font-medium">{{ status.expires_at|naturaltime }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Story Content -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700">
+        {% if status.media %}
+          <!-- Media -->
+          <div class="mb-4">
+            {% if status.media_type == 'image' %}
+              <img src="{{ status.media.url }}" alt="Story" class="w-full h-auto max-h-96 object-cover rounded-lg">
+            {% elif status.media_type == 'video' %}
+              <video controls class="w-full h-auto max-h-96 rounded-lg" style="max-height: 400px;">
+                <source src="{{ status.media.url }}" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <!-- Text Content -->
+        {% if status.content %}
+          <div class="p-6">
+            <p class="text-lg whitespace-pre-wrap text-gray-900 dark:text-gray-100">{{ status.content }}</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Metadata -->
+      <div class="mt-6 grid grid-cols-2 gap-4">
+        <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Posted</div>
+          <div class="text-lg font-semibold mt-1">{{ status.created_at|naturaltime }}</div>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div class="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Views</div>
+          <div class="text-lg font-semibold mt-1">{{ status.get_view_count }}</div>
+        </div>
+      </div>
+
+      <!-- Actions (only for owner) -->
+      {% if is_owner %}
+        <div class="mt-6 space-y-3">
+          <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div class="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">Who viewed your story:</div>
+            {% if viewers %}
+              <div class="space-y-2 max-h-64 overflow-y-auto">
+                {% for view in viewers %}
+                  <div class="flex items-center justify-between text-sm">
+                    <div class="text-blue-800 dark:text-blue-200">{{ view.viewer.username }}</div>
+                    <div class="text-xs text-blue-600 dark:text-blue-400">{{ view.viewed_at|naturaltime }}</div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-sm text-blue-700 dark:text-blue-300">No views yet</p>
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+        <!-- Actions for non-owners -->
+        <div class="mt-6">
+          <form method="post" action="{% url 'status:hide_status' status.id %}" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-4.803M9 3a3 3 0 110 6 3 3 0 010-6z"></path>
+              </svg>
+              Hide from {{ status.user.username }}
+            </button>
+          </form>
+        </div>
+      {% endif %}
+
+      <!-- Back button -->
+      <div class="mt-8 text-center">
+        <a href="{% url 'status:status_list' %}" class="text-blue-600 dark:text-blue-400 hover:underline">
+          ← Back to Stories
+        </a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

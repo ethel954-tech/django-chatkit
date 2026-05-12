@@ -1,5 +1,5 @@
 
-{% extends "chatkit/base.html" %}
+{% extends "chatkit/app_base.html" %}
 {% load static humanize %}
 {% block title %}Chat · {{ room.title|default:room.slug }}{% endblock %}
 {% block sidebar %}
@@ -27,21 +27,61 @@
 {% block content %}
   <div class="h-screen flex flex-col">
     <header class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/50">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-            {{ room.title|slice:":1"|upper }}
+      <div class="flex items-center justify-between gap-4">
+        <!-- Left: profile -->
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
+            {% if other_user %}
+              {{ other_user.username|slice:":1"|default:"?"|upper }}
+            {% else %}
+              ?
+            {% endif %}
           </div>
-          <div>
-            <div class="font-semibold">{{ room.title|default:room.slug }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">
+          <div class="min-w-0">
+            <div class="font-semibold truncate">
+              {% if other_user %}
+                {{ other_user.username }}
+              {% else %}
+                {{ room.title|default:room.slug }}
+              {% endif %}
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
               {{ room.participants.count }} participant{{ room.participants.count|pluralize }}
             </div>
           </div>
         </div>
-        <a href="{% url 'chatkit:friends' %}" class="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">
-          Manage Friends
-        </a>
+
+        <!-- Right: calls + kebab menu -->
+        <div class="flex items-center gap-2">
+          {% if other_user %}
+            <a title="Audio call" aria-label="Audio call" href="{% url 'calls:call_with_friend_audio' other_user.username %}" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+            </a>
+
+            <a title="Video call" aria-label="Video call" href="{% url 'calls:call_with_friend_video' other_user.username %}" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618V15.38a1 1 0 01-1.447.894L15 14v6H5a2 2 0 01-2-2V6a2 2 0 012-2h10v6z" />
+              </svg>
+            </a>
+          {% endif %}
+
+          <!-- 3-dot dropdown (WhatsApp-like) -->
+          <div class="relative">
+            <button type="button" id="chatkebabBtn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" aria-label="More options" aria-haspopup="true">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 6a2 2 0 110-4 2 2 0 010 4zm0 8a2 2 0 110-4 2 2 0 010 4zm0 8a2 2 0 110-4 2 2 0 010 4z"/>
+              </svg>
+            </button>
+
+            <div id="chatkebabMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden z-10">
+              <a href="{% url 'chatkit:friends' %}" class="block px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100">
+                Manage Friends
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -216,6 +256,22 @@
 
     // Call on page load
     addDateSeparators();
+
+    // Kebab menu toggle
+    const chatkebabBtn = document.getElementById('chatkebabBtn');
+    const chatkebabMenu = document.getElementById('chatkebabMenu');
+    if (chatkebabBtn && chatkebabMenu) {
+      chatkebabBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        chatkebabMenu.classList.toggle('hidden');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!chatkebabMenu.contains(e.target) && !chatkebabBtn.contains(e.target)) {
+          chatkebabMenu.classList.add('hidden');
+        }
+      });
+    }
 
     // Image Modal Functions
     function openImageModal(url, name) {
@@ -428,4 +484,3 @@
     }, 100);
   </script>
 {% endblock %}
-

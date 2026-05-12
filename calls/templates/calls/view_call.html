@@ -1,0 +1,298 @@
+{% extends "chatkit/app_base.html" %}
+{% block title %}ChatKit · Active Call{% endblock %}
+
+{% block sidebar %}
+  <div class="space-y-4">
+    <a href="{% url 'calls:calls_list' %}" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+      Back to Calls
+    </a>
+
+    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Call Info</h3>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-600 dark:text-gray-400">Type</span>
+          <span class="font-semibold">{% if call.call_type == 'video' %}📹 Video{% else %}📞 Audio{% endif %}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600 dark:text-gray-400">Duration</span>
+          <span class="font-semibold" id="duration">00:00</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600 dark:text-gray-400">Status</span>
+          <span class="font-semibold capitalize" id="status">{{ call.status }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="h-full overflow-y-auto">
+    <div class="max-w-2xl mx-auto p-6">
+      <div class="mb-6 text-center">
+        <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold text-4xl animate-pulse">
+          {{ other_user.username|slice:":1"|upper }}
+        </div>
+
+        <h1 class="text-3xl font-bold mb-2">{{ other_user.username }}</h1>
+
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">
+          {% if call.status == 'ringing' %}
+            <span class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+            <span class="text-blue-900 dark:text-blue-200">Ringing...</span>
+          {% elif call.status == 'ongoing' %}
+            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            <span class="text-blue-900 dark:text-blue-200">Call ongoing</span>
+          {% elif call.status == 'ended' %}
+            <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
+            <span class="text-blue-900 dark:text-blue-200">Call ended</span>
+          {% elif call.status == 'rejected' %}
+            <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+            <span class="text-blue-900 dark:text-blue-200">Call rejected</span>
+          {% elif call.status == 'missed' %}
+            <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+            <span class="text-blue-900 dark:text-blue-200">Missed call</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        {% if call.status == 'ringing' and is_receiver %}
+          <div class="grid grid-cols-2 gap-4">
+            <form method="post" action="{% url 'calls:accept_call' call.id %}">
+              {% csrf_token %}
+              <button type="submit" class="w-full px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 text-lg">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                </svg>
+                Accept
+              </button>
+            </form>
+
+            <form method="post" action="{% url 'calls:reject_call' call.id %}">
+              {% csrf_token %}
+              <button type="submit" class="w-full px-6 py-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2 text-lg">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 1a1 1 0 011-1h4a1 1 0 011 1v2h3a2 2 0 012 2v2h1a1 1 0 110 2h-1v12a2 2 0 01-2 2H5a2 2 0 01-2-2V9H2a1 1 0 110-2h1V5a2 2 0 012-2h3V1z"></path>
+                </svg>
+                Reject
+              </button>
+            </form>
+          </div>
+
+        {% elif call.status in 'ringing|ongoing' %}
+          <form method="post" action="{% url 'calls:end_call' call.id %}">
+            {% csrf_token %}
+            <button type="submit" class="w-full px-6 py-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2 text-lg">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M9 1a1 1 0 011-1h4a1 1 0 011 1v2h3a2 2 0 012 2v2h1a1 1 0 110 2h-1v12a2 2 0 01-2 2H5a2 2 0 01-2-2V9H2a1 1 0 110-2h1V5a2 2 0 012-2h3V1z"></path>
+              </svg>
+              End Call
+            </button>
+          </form>
+
+        {% else %}
+          <a href="{% url 'calls:calls_list' %}" class="block w-full px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-center">
+            Back to Calls
+          </a>
+        {% endif %}
+      </div>
+
+      {% if call.status in 'ongoing' %}
+        <div class="mt-6 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Your media</div>
+              <div class="text-lg font-semibold">Connected</div>
+            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-400" id="webrtcState">Starting…</div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="rounded-lg overflow-hidden bg-black">
+              <div class="text-xs text-white/80 px-3 py-2">Local</div>
+              <video id="localVideo" autoplay playsinline muted class="w-full h-auto" style="max-height: 360px; object-fit: cover;"></video>
+            </div>
+            <div class="rounded-lg overflow-hidden bg-black">
+              <div class="text-xs text-white/80 px-3 py-2">Remote</div>
+              <video id="remoteVideo" autoplay playsinline class="w-full h-auto" style="max-height: 360px; object-fit: cover;"></video>
+              <audio id="remoteAudio" autoplay></audio>
+            </div>
+          </div>
+
+          <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            If you don't hear audio, ensure browser microphone permissions are allowed.
+          </div>
+        </div>
+      {% else %}
+        <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <p class="text-sm text-blue-800 dark:text-blue-200">
+            <span class="font-semibold">💡 Note:</span> Start WebRTC after the call is <b>ongoing</b>.
+          </p>
+        </div>
+      {% endif %}
+
+      <div class="mt-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Call Type</div>
+            <div class="text-lg font-semibold">{% if call.call_type == 'video' %}📹 Video Call{% else %}📞 Audio Call{% endif %}</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Status</div>
+            <div class="text-lg font-semibold capitalize">{{ call.status }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <span id="call-data"
+    data-is-caller="{% if is_caller %}1{% else %}0{% endif %}"
+    data-has-video="{% if call.call_type == 'video' %}1{% else %}0{% endif %}"
+    hidden>
+  </span>
+
+  <script>
+    function getCsrfToken() {
+      return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+        document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1] || '';
+    }
+
+ const callData = document.getElementById('call-data').dataset;
+const CALL_SIGNAL_URL = document.getElementById('call-signal-url').dataset.url;
+const IS_CALLER = callData.isCaller === '1';
+const SHOULD_HAVE_VIDEO = callData.hasVideo === '1';
+    function setWebrtcState(text) {
+      const el = document.getElementById('webrtcState');
+      if (el) el.textContent = text;
+    }
+
+    async function postSignal(signalType, payload) {
+      const res = await fetch(CALL_SIGNAL_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        body: JSON.stringify({ signal_type: signalType, payload }),
+      });
+
+      if (!res.ok) {
+        let t = '';
+        try { t = await res.text(); } catch (_) {}
+        throw new Error('Signal POST failed: ' + res.status + ' ' + t);
+      }
+
+      try { return await res.json(); } catch (_) { return {}; }
+    }
+
+    async function pollSignals(afterId) {
+      const qs = afterId ? ('?after=' + afterId) : '';
+      const res = await fetch(CALL_SIGNAL_URL + qs, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      });
+
+      if (!res.ok) throw new Error('Signal poll failed: ' + res.status);
+      return res.json();
+    }
+
+    async function startWebRTC() {
+      if (!window.RTCPeerConnection) {
+        setWebrtcState('WebRTC not supported in this browser');
+        return;
+      }
+
+      const localVideo = document.getElementById('localVideo');
+      const remoteVideo = document.getElementById('remoteVideo');
+      const remoteAudio = document.getElementById('remoteAudio');
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      });
+
+      setWebrtcState('Requesting media…');
+
+      const mediaConstraints = {
+        audio: true,
+        video: SHOULD_HAVE_VIDEO ? true : false,
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+      localVideo.srcObject = stream;
+
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+      pc.ontrack = (event) => {
+        const [remoteStream] = event.streams;
+        if (!remoteStream) return;
+        if (remoteVideo) remoteVideo.srcObject = remoteStream;
+        if (remoteAudio) remoteAudio.srcObject = remoteStream;
+      };
+
+      pc.onicecandidate = async (event) => {
+        if (!event.candidate) return;
+        await postSignal('ice', event.candidate.toJSON());
+      };
+
+      let lastSignalId = null;
+
+      async function startPolling() {
+        setWebrtcState('Waiting for remote description…');
+
+        while (true) {
+          const data = await pollSignals(lastSignalId);
+          const signals = data.signals || [];
+          if (signals.length) lastSignalId = data.next_after;
+
+          for (const sig of signals) {
+            const signalType = sig.signal_type;
+            const payload = sig.payload;
+
+            if (signalType === 'offer') {
+              setWebrtcState('Received offer, creating answer…');
+              await pc.setRemoteDescription(new RTCSessionDescription(payload));
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              await postSignal('answer', pc.localDescription);
+            } else if (signalType === 'answer') {
+              setWebrtcState('Received answer…');
+              await pc.setRemoteDescription(new RTCSessionDescription(payload));
+            } else if (signalType === 'ice') {
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(payload));
+              } catch (e) {
+                // ignore
+              }
+            }
+          }
+
+          await new Promise((r) => setTimeout(r, 1200));
+        }
+      }
+
+      startPolling().catch((e) => {
+        console.error(e);
+        setWebrtcState('Signaling error: ' + e.message);
+      });
+
+      if (IS_CALLER) {
+        setWebrtcState('Creating offer…');
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await postSignal('offer', pc.localDescription);
+      }
+    }
+
+    // Start WebRTC immediately when call is ongoing; media/time is handled server-side + UI.
+    startWebRTC().catch((e) => {
+      console.error(e);
+      setWebrtcState('WebRTC start failed: ' + e.message);
+    });
+  </script>
+{% endblock %}

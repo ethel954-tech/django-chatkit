@@ -7,6 +7,7 @@ app_name = "chatkit"
 urlpatterns = [
     path("", views.index, name="index"),
     path("room/<slug:slug>/", views.room, name="room"),
+    path("chat/<str:username>/", views.open_private_chat, name="open_private_chat"),
     path("api/send/", views.api_send_message, name="api_send_message"),
     path("settings/", views.user_settings, name="user_settings"),
     

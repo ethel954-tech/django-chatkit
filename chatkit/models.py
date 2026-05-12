@@ -23,6 +23,13 @@ class ChatRoom(models.Model):
         room.participants.add(user_a, user_b)
         return room
 
+    @classmethod
+    def get_private_room_for_users(cls, user_a, user_b):
+        """Get or create private room for two users (WhatsApp-style)"""
+        if user_a == user_b:
+            raise ValueError("Cannot create room with same user")
+        return cls.get_or_create_dm(user_a, user_b)
+
 class Message(models.Model):
     chat = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name="messages")
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="messages")

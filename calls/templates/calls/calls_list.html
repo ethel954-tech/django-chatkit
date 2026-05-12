@@ -1,0 +1,138 @@
+{% extends "chatkit/app_base.html" %}
+{% load humanize %}
+{% block title %}ChatKit · Calls{% endblock %}
+
+{% block sidebar %}
+  <div class="space-y-4">
+    <a href="{% url 'calls:calls_list' %}" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 font-semibold">
+      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+      </svg>
+      Call History
+    </a>
+
+    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Quick Stats</h3>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-600 dark:text-gray-400">Total Calls</span>
+          <span class="font-semibold">{{ calls|length }}</span>
+        </div>
+        {% if missed_calls %}
+        <div class="flex justify-between text-red-600 dark:text-red-400">
+          <span>Missed</span>
+          <span class="font-semibold">{{ missed_calls|length }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="h-full overflow-y-auto p-6">
+    <div class="max-w-3xl mx-auto">
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-2">Calls</h1>
+        <p class="text-gray-600 dark:text-gray-400">View your call history</p>
+      </div>
+
+      <!-- Call History Tabs -->
+      <div class="mb-6">
+        <div class="flex gap-4 border-b border-gray-200 dark:border-gray-700">
+          <button class="px-4 py-2 font-medium border-b-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400">
+            All
+          </button>
+          <a href="#missed" class="px-4 py-2 font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+            Missed
+          </a>
+        </div>
+      </div>
+
+      <!-- Call List -->
+      {% if calls %}
+        <div class="space-y-2">
+          {% for call in calls %}
+            <a href="{% url 'calls:view_call' call.id %}" class="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+              <div class="flex items-center justify-between">
+                <!-- Call Info -->
+                <div class="flex items-center gap-3 flex-1">
+                  <!-- Avatar -->
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                    {% if call.caller == user %}
+                      {{ call.receiver.username|slice:":1"|upper }}
+                    {% else %}
+                      {{ call.caller.username|slice:":1"|upper }}
+                    {% endif %}
+                  </div>
+
+                  <!-- Call Details -->
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                      <div class="font-medium truncate">
+                        {% if call.caller == user %}
+                          Called {{ call.receiver.username }}
+                        {% else %}
+                          {% if call.status == 'missed' %}
+                            <span class="text-red-600 dark:text-red-400">Missed call</span> from {{ call.caller.username }}
+                          {% else %}
+                            {{ call.caller.username }} called
+                          {% endif %}
+                        {% endif %}
+                      </div>
+                      
+                      <!-- Call Type Badge -->
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if call.call_type == 'video' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                        {% if call.call_type == 'video' %}📹 Video{% else %}📞 Audio{% endif %}
+                      </span>
+                    </div>
+
+                    <!-- Status & Time -->
+                    <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                      <span>
+                        {% if call.status == 'ongoing' %}
+                          <span class="text-blue-600 dark:text-blue-400">● Ongoing</span>
+                        {% elif call.status == 'ended' %}
+                          {{ call.format_duration }} • {{ call.ended_at|naturaltime }}
+                        {% elif call.status == 'missed' %}
+                          <span class="text-red-600 dark:text-red-400">● Missed</span> • {{ call.created_at|naturaltime }}
+                        {% elif call.status == 'rejected' %}
+                          Rejected • {{ call.ended_at|naturaltime }}
+                        {% elif call.status == 'ringing' %}
+                          <span class="text-yellow-600 dark:text-yellow-400">● Ringing</span>
+                        {% endif %}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Call Icon -->
+                <div class="text-gray-400">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-12">
+          <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+          </svg>
+          <p class="text-gray-500 dark:text-gray-400 mb-4">No calls yet</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Start calling your friends to see your call history here</p>
+        </div>
+      {% endif %}
+
+      <!-- Info -->
+      <div class="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <p class="text-sm text-blue-800 dark:text-blue-200">
+          <span class="font-semibold">📞 Tip:</span> You can only call your accepted friends. Missed calls are highlighted in red.
+        </p>
+      </div>
+    </div>
+  </div>
+{% endblock %}
