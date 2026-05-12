@@ -20,6 +20,9 @@ urlpatterns = [
 
     path('api/incoming/', views.get_incoming_calls, name='get_incoming_calls'),
 
+    # Call status polling (sync UI across both users)
+    path('api/<int:call_id>/status/', views.call_status, name='call_status'),
+
     # WebRTC signaling (MVP: REST + polling)
     path('api/<int:call_id>/signal/', views.call_signal, name='call_signal'),
 ]

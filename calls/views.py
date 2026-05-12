@@ -277,6 +277,27 @@ def get_incoming_calls(request: HttpRequest) -> JsonResponse:
 
 
 @login_required
+def call_status(request: HttpRequest, call_id: int) -> JsonResponse:
+    """Return current call status for polling clients."""
+    call = get_object_or_404(CallSession, id=call_id)
+
+    if request.user not in [call.caller, call.receiver]:
+        return JsonResponse({"error": "Forbidden"}, status=403)
+
+    return JsonResponse(
+        {
+            "id": call.id,
+            "status": call.status,
+            "call_type": call.call_type,
+            "caller_id": call.caller_id,
+            "receiver_id": call.receiver_id,
+            "ended_at": call.ended_at.isoformat() if call.ended_at else None,
+            "started_at": call.started_at.isoformat() if call.started_at else None,
+        }
+    )
+
+
+@login_required
 def call_signal(request: HttpRequest, call_id: int) -> JsonResponse:
     """
     MVP signaling endpoint (REST + polling).
